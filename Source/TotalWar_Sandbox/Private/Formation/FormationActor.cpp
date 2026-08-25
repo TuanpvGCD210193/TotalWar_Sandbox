@@ -194,6 +194,36 @@ void AFormationActor::SetFacingDirection(const FVector& NewFacing)
 	}
 }
 
+void AFormationActor::SetSelected(bool bInSelected)
+{
+	bIsSelected = bInSelected;
+}
+
+void AFormationActor::GetFormationGroundBounds(FVector& OutCenter, FVector& OutExtents, FRotator& OutRotation) const
+{
+	OutCenter = GetActorLocation();
+	OutRotation = FacingDirection.Rotation();
+
+	const int32 Count = SoldierEntities.Num();
+	if (Count <= 0 || !SlotComponent)
+	{
+		OutExtents = FVector(100.0f, 100.0f, 20.0f);
+		return;
+	}
+
+	const int32 Columns = SlotComponent->GetFormationWidth();
+	const int32 Rows = FMath::CeilToInt(static_cast<float>(Count) / static_cast<float>(FMath::Max(1, Columns)));
+	const float Spacing = SlotComponent->GetSoldierSpacing();
+
+	const float HalfWidth = (Columns * Spacing) * 0.5f + 30.0f;
+	const float HalfDepth = (Rows * Spacing) * 0.5f + 30.0f;
+
+	// Center along depth: Row 0 is at offset 0, last row is at -(Rows-1)*Spacing
+	const float CenterOffsetForward = -((Rows - 1) * Spacing) * 0.5f;
+	OutCenter += OutRotation.RotateVector(FVector(CenterOffsetForward, 0.0f, 5.0f));
+	OutExtents = FVector(HalfDepth, HalfWidth, 15.0f);
+}
+
 FSoldierEntity* AFormationActor::GetSoldier(int32 Index)
 {
 	if (SoldierEntities.IsValidIndex(Index))

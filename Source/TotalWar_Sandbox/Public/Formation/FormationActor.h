@@ -55,11 +55,13 @@ public:
 
 	void SetFormationState(EFormationState NewState);
 	void SetFacingDirection(const FVector& NewFacing);
+	void SetSelected(bool bInSelected);
 
 	// ========================================================================
 	// GETTERS & DELEGATED ACCESSORS (Encapsulation)
 	// ========================================================================
 
+	FORCEINLINE bool IsSelected() const { return bIsSelected; }
 	FORCEINLINE int32 GetFormationID() const { return FormationID; }
 	FORCEINLINE void SetFormationID(int32 InID) { FormationID = InID; }
 
@@ -70,6 +72,9 @@ public:
 	FORCEINLINE int32 GetAliveCount() const { return SoldierEntities.Num(); }
 	FORCEINLINE const FVector& GetFacingDirection() const { return FacingDirection; }
 	FORCEINLINE FVector GetFormationCenter() const { return GetActorLocation(); }
+
+	/** Calculates the total physical bounding box of the formation grid on the ground */
+	void GetFormationGroundBounds(FVector& OutCenter, FVector& OutExtents, FRotator& OutRotation) const;
 
 	FORCEINLINE const TArray<FSoldierEntity>& GetSoldierEntities() const { return SoldierEntities; }
 	FORCEINLINE TArray<FSoldierEntity>& GetSoldierEntitiesMutable() { return SoldierEntities; }
@@ -128,6 +133,8 @@ protected:
 private:
 	UPROPERTY(Transient)
 	EFormationState FormationState;
+
+	bool bIsSelected;
 
 	FVector FacingDirection;
 
