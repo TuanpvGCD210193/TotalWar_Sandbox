@@ -77,6 +77,12 @@ void AFormationActor::Tick(float DeltaTime)
 		}
 	}
 
+	// Update Actor root location to match the live centroid of living soldiers
+	if (SoldierEntities.Num() > 0)
+	{
+		SetActorLocation(GetFormationCenter());
+	}
+
 	// Always synchronize living soldier transforms to GPU Instanced Static Mesh
 	SyncVisualTransforms();
 }
@@ -339,4 +345,21 @@ bool AFormationActor::IsSoldierAlive(int32 Index) const
 		return SoldierEntities[Index].IsAlive();
 	}
 	return false;
+}
+
+FVector AFormationActor::GetFormationCenter() const
+{
+	FVector Sum = FVector::ZeroVector;
+	int32 AliveCount = 0;
+
+	for (const FSoldierEntity& Soldier : SoldierEntities)
+	{
+		if (Soldier.IsAlive())
+		{
+			Sum += Soldier.Position;
+			++AliveCount;
+		}
+	}
+
+	return (AliveCount > 0) ? (Sum / static_cast<float>(AliveCount)) : GetActorLocation();
 }

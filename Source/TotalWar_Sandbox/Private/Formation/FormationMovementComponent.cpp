@@ -143,7 +143,7 @@ void UFormationMovementComponent::UpdateMovement(
 			CurrentSpeed = BaseMoveSpeed * TWConstants::ChargeSpeedMultiplier; // +80% Speed Boost!
 		}
 
-		// Case 2: Frontline Physical Melee Impact (Front rows touch at < 120cm)
+		// Case 2: Frontline Physical Melee Impact
 		if (DistToFrontline <= 120.0f || DistToEnemy <= 150.0f)
 		{
 			if (!bHasImpacted)
@@ -151,28 +151,33 @@ void UFormationMovementComponent::UpdateMovement(
 				bHasImpacted = true;
 				ChargeBonusTimer = TWConstants::ChargeDecayDuration; // Start 10s countdown!
 
-				// Mass Ratio & Knockback
+				// Mass Ratio & Knockback Formula
 				UUnitDataAsset* MyData = OwnerFormation->GetUnitDataAsset();
 				UUnitDataAsset* EnemyData = TargetEnemyFormation->GetUnitDataAsset();
 
 				const float MyMass = MyData ? MyData->GetMass() : 100.0f;
 				const float EnemyMass = EnemyData ? EnemyData->GetMass() : 100.0f;
-				const float MassRatio = FMath::Clamp(MyMass / FMath::Max(10.0f, EnemyMass), 0.5f, 4.0f);
+				const float MassRatio = MyMass / FMath::Max(10.0f, EnemyMass);
 
-				// Knockback impulse vector on defending frontline (2D only)
-				const FVector KnockbackDir = (!FinalDesiredFacing.IsNearlyZero()) ? FinalDesiredFacing.GetSafeNormal2D() : OwnerFormation->GetFacingDirection();
-				const float KnockbackDist = 60.0f * MassRatio;
-
-				TArray<FSoldierEntity>& EnemySoldiers = TargetEnemyFormation->GetSoldierEntitiesMutable();
-				for (int32 k = 0; k < FMath::Min(20, EnemySoldiers.Num()); ++k)
+				// Only heavy mass difference (e.g. Cavalry > 1.25x) causes physical knockback. Equal mass (Infantry 1:1) = 0 knockback!
+				if (MassRatio > 1.25f)
 				{
-					if (EnemySoldiers[k].IsAlive())
+					const FVector KnockbackDir = (!FinalDesiredFacing.IsNearlyZero()) ? FinalDesiredFacing.GetSafeNormal2D() : OwnerFormation->GetFacingDirection();
+					const float KnockbackDist = 50.0f * (MassRatio - 1.0f);
+
+					TArray<FSoldierEntity>& EnemySoldiers = TargetEnemyFormation->GetSoldierEntitiesMutable();
+					for (int32 k = 0; k < FMath::Min(20, EnemySoldiers.Num()); ++k)
 					{
-						EnemySoldiers[k].Position += KnockbackDir * (KnockbackDist * FMath::FRandRange(0.7f, 1.2f));
+						if (EnemySoldiers[k].IsAlive())
+						{
+							EnemySoldiers[k].Position += KnockbackDir * (KnockbackDist * FMath::FRandRange(0.7f, 1.2f));
+						}
 					}
 				}
 			}
 
+			// Attacker hits frontline: Stop moving and Lock the Frontline!
+			bIsMoving = false;
 			if (OwnerFormation)
 			{
 				OwnerFormation->SetFormationState(EFormationState::Engage);
@@ -223,8 +228,9 @@ void UFormationMovementComponent::UpdateMovement(
 		const FVector ToSlot = (TargetSlotPos - Soldier.Position);
 		const float DistToSlot = ToSlot.Size2D();
 
-		// 4a. Intra-Squad Soft Separation (Allies)
 		FVector SeparationForce = FVector::ZeroVector;
+
+		// Intra-Squad Soft Separation (Allies) - Keeps comrades from overlapping
 		for (int32 j = 0; j < Soldiers.Num(); ++j)
 		{
 			if (i == j || !Soldiers[j].IsAlive())
@@ -243,39 +249,9 @@ void UFormationMovementComponent::UpdateMovement(
 			}
 		}
 
-		// 4b. Obstacle Avoidance (Rocks, trees, buildings)
-		if (SpatialGrid)
+		if (SpatialGrid && OwnerFormation->GetFormationState() != EFormationState::Engage)
 		{
 			SeparationForce += SpatialGrid->CalculateObstacleRepulsion(Soldier.Position, PersonalRadius);
-
-			// 4c. Inter-Squad Hard Collision (Enemies) — Soft barrier at 50cm allowing melee reach
-			TArray<FSoldierHandle> NearbyEnemies;
-			SpatialGrid->QueryEnemiesInRadius(Soldier.Position, 65.0f, MyTeam, NearbyEnemies);
-
-			for (const FSoldierHandle& EnemyHandle : NearbyEnemies)
-			{
-				if (FormationSubsystem)
-				{
-					AFormationActor* EnemySquad = FormationSubsystem->GetFormationByID(EnemyHandle.FormationID);
-					if (EnemySquad && EnemySquad->IsSoldierAlive(EnemyHandle.SoldierIndex))
-					{
-						FSoldierEntity* EnemySoldier = EnemySquad->GetSoldier(EnemyHandle.SoldierIndex);
-						if (EnemySoldier)
-						{
-							const FVector EnemyDiff = (Soldier.Position - EnemySoldier->Position).GetSafeNormal2D();
-							const float EnemyDistSq = FVector::DistSquared2D(Soldier.Position, EnemySoldier->Position);
-							const float EnemyMinDist = 50.0f; // 50cm contact boundary
-
-							if (EnemyDistSq > 0.001f && EnemyDistSq < (EnemyMinDist * EnemyMinDist))
-							{
-								const float EnemyDist = FMath::Sqrt(EnemyDistSq);
-								const float PushRatio = (EnemyMinDist - EnemyDist) / EnemyMinDist;
-								SeparationForce += EnemyDiff * (PushRatio * 60.0f);
-							}
-						}
-					}
-				}
-			}
 		}
 
 		SeparationForce.Z = 0.0f; // Pure 2D horizontal force
@@ -286,13 +262,14 @@ void UFormationMovementComponent::UpdateMovement(
 		if (OwnerFormation->GetFormationState() == EFormationState::Engage)
 		{
 			// ================================================================
-			// COMBAT ENVELOPE AGENT-LEVEL STEERING:
-			// Each soldier finds nearest enemy within 2.5m and maintains melee engagement
+			// HYBRID COMBAT SYSTEM (003 + 004):
+			// - Defender: Rock-solid hold ground (0% backward drift).
+			// - Attacker: Pushes forward until frontline contact, then fights!
 			// ================================================================
 			TArray<FSoldierHandle> LocalEnemies;
 			if (SpatialGrid)
 			{
-				SpatialGrid->QueryEnemiesInRadius(Soldier.Position, 250.0f, MyTeam, LocalEnemies);
+				SpatialGrid->QueryEnemiesInRadius(Soldier.Position, 150.0f, MyTeam, LocalEnemies);
 			}
 
 			if (LocalEnemies.Num() > 0 && FormationSubsystem)
@@ -324,15 +301,15 @@ void UFormationMovementComponent::UpdateMovement(
 					const FVector DirToEnemy = (ClosestEnemy->Position - Soldier.Position).GetSafeNormal2D();
 					TargetRot = DirToEnemy.Rotation();
 
-					if (EnemyDist > 85.0f)
+					if (EnemyDist > 80.0f)
 					{
-						// Step towards enemy to close melee weapon reach
-						DesiredVelocity = DirToEnemy * (BaseMoveSpeed * 0.6f);
+						// Step forward to close into weapon reach (NEVER step back!)
+						DesiredVelocity = DirToEnemy * (BaseMoveSpeed * 0.45f);
 						Soldier.State = ESoldierState::Moving;
 					}
 					else
 					{
-						// In weapon strike reach
+						// In weapon strike reach: Stand firm and fight!
 						DesiredVelocity = FVector::ZeroVector;
 						Soldier.State = ESoldierState::Fighting;
 					}
@@ -340,10 +317,21 @@ void UFormationMovementComponent::UpdateMovement(
 			}
 			else
 			{
-				// Rear-rank reinforcement: push forward in formation facing to close frontline gaps
-				DesiredVelocity = FinalDesiredFacing * (BaseMoveSpeed * 0.45f);
-				Soldier.State = ESoldierState::Moving;
-				TargetRot = FinalDesiredFacing.Rotation();
+				// Rear-rank soldiers without enemy in reach:
+				if (IsValid(TargetEnemyFormation))
+				{
+					// Attacking squad: push forward to reinforce frontline
+					DesiredVelocity = FinalDesiredFacing * (BaseMoveSpeed * 0.4f);
+					Soldier.State = ESoldierState::Moving;
+					TargetRot = FinalDesiredFacing.Rotation();
+				}
+				else
+				{
+					// Defending squad: hold formation line solidly
+					DesiredVelocity = FVector::ZeroVector;
+					Soldier.State = ESoldierState::Idle;
+					TargetRot = FinalDesiredFacing.Rotation();
+				}
 			}
 		}
 		else

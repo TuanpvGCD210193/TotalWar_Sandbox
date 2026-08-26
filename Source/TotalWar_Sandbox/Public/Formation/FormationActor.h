@@ -77,7 +77,7 @@ public:
 
 	FORCEINLINE int32 GetAliveCount() const { return SoldierEntities.Num(); }
 	FORCEINLINE const FVector& GetFacingDirection() const { return FacingDirection; }
-	FORCEINLINE FVector GetFormationCenter() const { return GetActorLocation(); }
+	FVector GetFormationCenter() const;
 
 	/** Encapsulated Forwarders to MovementComponent */
 	bool IsMoving() const;

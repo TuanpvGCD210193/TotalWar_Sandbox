@@ -243,37 +243,10 @@ void UFormationSlotComponent::CalculateFormationGroundBounds(
 	FVector& OutExtents,
 	FRotator& OutRotation) const
 {
-	const int32 Count = Soldiers.Num();
-	if (Count == 0)
-	{
-		OutCenter = ActorLoc;
-		OutExtents = FVector(100.0f, 100.0f, 20.0f);
-		OutRotation = Facing.Rotation();
-		return;
-	}
-
 	const float Spacing = SoldierSpacing;
 
-	// 1. In Idle / Static state -> Rigid geometric formation bounds
-	if (!bIsMoving && State == EFormationState::Idle)
-	{
-		OutRotation = Facing.Rotation();
-
-		const int32 Columns = FMath::Clamp(CurrentFormationWidth, MinFormationWidth, MaxFormationWidth);
-		const int32 Rows = FMath::Max(1, FMath::CeilToInt(static_cast<float>(Count) / static_cast<float>(Columns)));
-
-		const float HalfWidth = (Columns * Spacing) * 0.5f + Spacing * 0.25f;
-		const float HalfDepth = (Rows * Spacing) * 0.5f + Spacing * 0.25f;
-
-		const float CenterOffsetForward = -((Rows - 1) * Spacing) * 0.5f;
-		OutCenter = ActorLoc + Facing * CenterOffsetForward;
-		OutExtents = FVector(HalfDepth, HalfWidth, 20.0f);
-		return;
-	}
-
-	// 2. In March / Dynamic state -> Realtime Oriented Bounding Box enclosing living soldiers
+	// Calculate Realtime Oriented Bounding Box enclosing all living soldiers
 	FVector Centroid = FVector::ZeroVector;
-	FVector ForwardSum = FVector::ZeroVector;
 	int32 AliveCount = 0;
 
 	for (const FSoldierEntity& Soldier : Soldiers)
@@ -281,7 +254,6 @@ void UFormationSlotComponent::CalculateFormationGroundBounds(
 		if (Soldier.IsAlive())
 		{
 			Centroid += Soldier.Position;
-			ForwardSum += Soldier.Rotation.Vector();
 			++AliveCount;
 		}
 	}
@@ -289,17 +261,17 @@ void UFormationSlotComponent::CalculateFormationGroundBounds(
 	if (AliveCount == 0)
 	{
 		OutCenter = ActorLoc;
-		OutExtents = FVector(100.0f, 100.0f, 20.0f);
+		OutExtents = FVector(Spacing, Spacing, 20.0f);
 		OutRotation = Facing.Rotation();
 		return;
 	}
 
 	Centroid /= static_cast<float>(AliveCount);
 
-	FVector ForwardVec = ForwardSum.GetSafeNormal2D();
+	FVector ForwardVec = Facing.GetSafeNormal2D();
 	if (ForwardVec.IsNearlyZero())
 	{
-		ForwardVec = Facing;
+		ForwardVec = FVector::ForwardVector;
 	}
 	const FVector RightVec = FRotationMatrix(ForwardVec.Rotation()).GetUnitAxis(EAxis::Y);
 
@@ -319,15 +291,15 @@ void UFormationSlotComponent::CalculateFormationGroundBounds(
 		}
 	}
 
-	const float Margin = Spacing * 0.6f;
+	const float Padding = Spacing * 0.5f;
 	const float CenterF = (MinF + MaxF) * 0.5f;
 	const float CenterR = (MinR + MaxR) * 0.5f;
 
 	OutCenter = Centroid + ForwardVec * CenterF + RightVec * CenterR;
 	OutRotation = ForwardVec.Rotation();
 	OutExtents = FVector(
-		FMath::Max(Spacing, (MaxF - MinF) * 0.5f + Margin),
-		FMath::Max(Spacing, (MaxR - MinR) * 0.5f + Margin),
+		FMath::Max(Spacing * 0.5f, (MaxF - MinF) * 0.5f + Padding),
+		FMath::Max(Spacing * 0.5f, (MaxR - MinR) * 0.5f + Padding),
 		20.0f
 	);
 }
