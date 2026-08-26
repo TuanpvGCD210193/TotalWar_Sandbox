@@ -9,14 +9,17 @@
 
 class ATWCameraPawn;
 class AFormationActor;
+class UTWSelectionComponent;
+class UTWCommandComponent;
 
 /**
- * ATWPlayerController — Bộ Điều Khiển Người Chơi (RTS Player Controller).
+ * ATWPlayerController — Bộ Điều Khiển Người Chơi (Thin Controller Hub).
  * Trách nhiệm duy nhất (SRP):
- *   - Lắng nghe raw input (bàn phím WASD, cuộn chuột, chuột trái/phải/giữa) mỗi frame qua PlayerTick.
- *   - Điều khiển Camera Pawn.
- *   - Quản lý trạng thái chọn quân (Selection state machine: Click đơn lẻ hoặc Quét hộp chữ nhật).
- * Follows Single Responsibility Principle (SRP) & Dependency Inversion Principle (DIP).
+ *   - Lắng nghe Input Camera (WASD/Zoom/Orbit).
+ *   - Điều phối 2 Sub-Components chuyên biệt (SRP):
+ *       1. UTWSelectionComponent (Quét/chọn quân phe ta)
+ *       2. UTWCommandComponent (Phát lệnh di chuyển/dàn trận/tấn công)
+ * Follows Single Responsibility Principle (SRP) & SOLID architecture.
  */
 UCLASS()
 class TOTALWAR_SANDBOX_API ATWPlayerController : public APlayerController
@@ -29,52 +32,44 @@ public:
 	virtual void PlayerTick(float DeltaTime) override;
 
 	// ========================================================================
-	// SELECTION PUBLIC API
+	// GETTERS & ENCAPSULATED ACCESSORS (Forwarders for HUD)
 	// ========================================================================
 
-	/** Selects a single formation, optionally adding to existing selection (Shift/Ctrl) */
-	void SelectFormation(AFormationActor* Formation, bool bAdditive = false);
+	FORCEINLINE UTWSelectionComponent* GetSelectionComponent() const { return SelectionComponent; }
+	FORCEINLINE UTWCommandComponent* GetCommandComponent() const { return CommandComponent; }
 
-	/** Clears all currently selected formations */
-	void DeselectAll();
+	// Forwarders to SelectionComponent
+	bool IsDraggingSelection() const;
+	const FVector2D& GetSelectionStartPos() const;
+	const FVector2D& GetSelectionCurrentPos() const;
+	const TArray<TObjectPtr<AFormationActor>>& GetSelectedFormations() const;
+	bool HasSelectedFormations() const;
 
-	/** Selects all player (Blue) formations whose world bounds intersect the 2D screen box */
-	void SelectFormationsInScreenBox(const FVector2D& ScreenStart, const FVector2D& ScreenEnd);
-
-	// ========================================================================
-	// GETTERS FOR HUD & EXTERNAL SYSTEMS (Encapsulation)
-	// ========================================================================
-
-	FORCEINLINE bool IsDraggingSelection() const { return bIsDraggingSelection; }
-	FORCEINLINE const FVector2D& GetSelectionStartPos() const { return SelectionStartScreenPos; }
-	FORCEINLINE const FVector2D& GetSelectionCurrentPos() const { return SelectionCurrentScreenPos; }
-	FORCEINLINE const TArray<TObjectPtr<AFormationActor>>& GetSelectedFormations() const { return SelectedFormations; }
-	FORCEINLINE bool HasSelectedFormations() const { return SelectedFormations.Num() > 0; }
+	// Forwarders to CommandComponent
+	bool IsDraggingPlacement() const;
+	const FVector& GetPlacementCenter() const;
+	const FVector& GetPlacementFacing() const;
+	int32 GetPlacementWidth() const;
+	float GetPlacementDragLength() const;
+	bool IsSpaceBarHeld() const;
 
 protected:
 	virtual void BeginPlay() override;
 
+	// ========================================================================
+	// SPECIALIZED CONTROLLER COMPONENTS
+	// ========================================================================
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Components")
+	TObjectPtr<UTWSelectionComponent> SelectionComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Components")
+	TObjectPtr<UTWCommandComponent> CommandComponent;
+
 private:
-	// ========================================================================
-	// RUNTIME SELECTION DATA
-	// ========================================================================
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<AFormationActor>> SelectedFormations;
-
-	bool bLeftMouseDown;
-	bool bIsDraggingSelection;
-	FVector2D SelectionStartScreenPos;
-	FVector2D SelectionCurrentScreenPos;
-
 	FVector2D LastMousePosition;
 	bool bMiddleMouseDown;
 
-	// ========================================================================
-	// INPUT POLLING METHODS (Raw Input Handlers)
-	// ========================================================================
-
 	void PollCameraInput(float DeltaTime);
-	void PollSelectionInput();
 	ATWCameraPawn* GetControlledCameraPawn() const;
 };

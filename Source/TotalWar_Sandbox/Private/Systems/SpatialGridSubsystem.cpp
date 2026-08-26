@@ -18,6 +18,40 @@ void USpatialGridSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
+void USpatialGridSubsystem::RegisterObstacle(const FVector& Position, float Radius)
+{
+	FTWObstacle Obs;
+	Obs.Position = Position;
+	Obs.Radius = FMath::Max(30.0f, Radius);
+	RegisteredObstacles.Add(Obs);
+}
+
+void USpatialGridSubsystem::ClearObstacles()
+{
+	RegisteredObstacles.Empty();
+}
+
+FVector USpatialGridSubsystem::CalculateObstacleRepulsion(const FVector& SoldierPos, float SoldierRadius) const
+{
+	FVector Repulsion = FVector::ZeroVector;
+
+	for (const FTWObstacle& Obs : RegisteredObstacles)
+	{
+		const FVector Diff = SoldierPos - Obs.Position;
+		const float DistSq = Diff.SizeSquared2D();
+		const float TotalRadius = Obs.Radius + SoldierRadius;
+
+		if (DistSq > 0.001f && DistSq < (TotalRadius * TotalRadius))
+		{
+			const float Dist = FMath::Sqrt(DistSq);
+			const float PushRatio = (TotalRadius - Dist) / TotalRadius;
+			Repulsion += (Diff.GetSafeNormal2D()) * (PushRatio * 350.0f);
+		}
+	}
+
+	return Repulsion;
+}
+
 void USpatialGridSubsystem::ClearGrid()
 {
 	GridMap.Empty();

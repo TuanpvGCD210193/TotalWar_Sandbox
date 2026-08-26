@@ -23,3 +23,13 @@
    - KHÔNG tự ý hardcode đường dẫn asset (Mesh, Material, DataAsset...) bằng chuỗi string tĩnh trong C++.
    - Mọi tài nguyên cấu hình phải được expose qua `UPROPERTY(EditAnywhere, BlueprintReadWrite, ...)` để gán bằng tay trong Unreal Editor.
    - Nếu có tình huống đặc biệt buộc phải hardcode, BẮT BUỘC phải giải thích và hỏi ý kiến anh trước.
+
+6. **Tích Hợp Song Song & Tuyệt Đối Tuân Thủ GitHub Spec Kit (SDD Workflow)**:
+   - **Spec-First Principle**: Trước khi bắt đầu một tính năng mới hoặc một hệ thống lớn, luôn phối hợp cùng anh thiết lập hoặc cập nhật bộ tài liệu Spec Kit trong `.specify/` và `specs/`:
+     1. **`spec.md`**: Chốt rõ Mục tiêu tính năng, Công thức toán học / Logic, và Tối thiểu 5-6 Edge Cases (kịch bản lỗi tiềm ẩn) trước khi đụng vào code.
+     2. **`plan.md`**: Bản vẽ kiến trúc phân định rõ trách nhiệm của từng file C++/Subsystem, đảm bảo không đè logic lẫn nhau (SOLID/SRP/DIP).
+     3. **`tasks.md`**: Phân rã công việc thành các Micro-Tasks độc lập, có thứ tự ưu tiên.
+   - **Song Hành Cùng Kỷ Luật Thi Công**:
+     - Sử dụng `spec.md` và `plan.md` làm kim chỉ nam (Single Source of Truth).
+     - Áp dụng nghiêm ngặt quy tắc Micro-Steps: Trình bày giải pháp -> Nói rõ *"chưa code nhé"* -> Chờ anh đồng ý -> Viết code -> Hướng dẫn test trên Engine -> Cập nhật tick `[x]` vào `tasks.md`.
+   - **Bảo Vệ Hiến Pháp Dự Án (`constitution.md`)**: Luôn đối chiếu mọi thay đổi mã nguồn với `.specify/memory/constitution.md` để đảm bảo 0% hardcoding và 0% nợ kỹ thuật (Technical Debt).

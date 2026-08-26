@@ -8,19 +8,22 @@
 #include "TotalWar_Sandbox/Public/Entity/SoldierEntity.h"
 #include "TotalWar_Sandbox/Public/Entity/FormationSlot.h"
 #include "TotalWar_Sandbox/Public/Entity/SoldierHandle.h"
+#include "TotalWar_Sandbox/Public/Formation/FormationCommand.h"
 #include "FormationActor.generated.h"
 
 class UUnitDataAsset;
 class UFormationSlotComponent;
 class USoldierVisualComponent;
+class UFormationMovementComponent;
 class UMaterialInterface;
 
 /**
  * AFormationActor — Đạo Quân (Squad Coordinator).
- * Đóng vai trò hạt nhân điều phối: Quản lý State Machine, sở hữu mảng lính FSoldierEntity,
- * và điều phối 2 Component chuyên biệt:
- *   1. UFormationSlotComponent (Bộ Quản Lý Vị Trí Đội Hình)
- *   2. USoldierVisualComponent (Bộ Hiển Thị & Render)
+ * Đóng vai trò hạt nhân điều phối (Coordinator Pattern):
+ * Sở hữu mảng lính FSoldierEntity và điều phối 3 Component chuyên biệt (SRP):
+ *   1. UFormationSlotComponent (Bộ Quản Lý Vị Trí & Hình Học Đội Hình)
+ *   2. USoldierVisualComponent (Bộ Hiển Thị Instanced Static Mesh)
+ *   3. UFormationMovementComponent (Bộ Điều Khiển Di Chuyển & Lái Lính)
  * Follows Single Responsibility Principle (SRP) & SOLID architecture.
  */
 UCLASS()
@@ -50,15 +53,18 @@ public:
 	void KillSoldier(int32 SoldierIndex);
 
 	// ========================================================================
-	// STATE & DIRECTION
+	// STATE, DIRECTION & COMMANDS
 	// ========================================================================
+
+	/** Executes a tactical command (Move, Attack, PlacementMove) */
+	void ExecuteCommand(const FFormationCommand& Command);
 
 	void SetFormationState(EFormationState NewState);
 	void SetFacingDirection(const FVector& NewFacing);
 	void SetSelected(bool bInSelected);
 
 	// ========================================================================
-	// GETTERS & DELEGATED ACCESSORS (Encapsulation)
+	// GETTERS & ENCAPSULATED ACCESSORS (Law of Demeter)
 	// ========================================================================
 
 	FORCEINLINE bool IsSelected() const { return bIsSelected; }
@@ -73,7 +79,19 @@ public:
 	FORCEINLINE const FVector& GetFacingDirection() const { return FacingDirection; }
 	FORCEINLINE FVector GetFormationCenter() const { return GetActorLocation(); }
 
-	/** Calculates the total physical bounding box of the formation grid on the ground */
+	/** Encapsulated Forwarders to MovementComponent */
+	bool IsMoving() const;
+	const FVector& GetTargetDestination() const;
+	const FVector& GetFinalDesiredFacing() const;
+	AFormationActor* GetTargetEnemyFormation() const;
+	bool IsAttacking() const;
+
+	/** Encapsulated Forwarders to SlotComponent */
+	int32 GetFormationWidth() const;
+	float GetSoldierSpacing() const;
+	void SetFormationWidth(int32 NewWidth);
+
+	/** Calculates the total physical bounding box of the formation on the ground */
 	void GetFormationGroundBounds(FVector& OutCenter, FVector& OutExtents, FRotator& OutRotation) const;
 
 	FORCEINLINE const TArray<FSoldierEntity>& GetSoldierEntities() const { return SoldierEntities; }
@@ -81,6 +99,7 @@ public:
 
 	FORCEINLINE UFormationSlotComponent* GetSlotComponent() const { return SlotComponent; }
 	FORCEINLINE USoldierVisualComponent* GetVisualComponent() const { return VisualComponent; }
+	FORCEINLINE UFormationMovementComponent* GetMovementComponent() const { return MovementComponent; }
 
 	/** Retrieves a reference to a soldier entity by index */
 	FSoldierEntity* GetSoldier(int32 Index);
@@ -93,7 +112,7 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	// ========================================================================
-	// SUB-COMPONENTS (Specialized SRP Components)
+	// SPECIALIZED SRP COMPONENTS
 	// ========================================================================
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Formation|Components")
@@ -104,6 +123,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Formation|Components")
 	TObjectPtr<USoldierVisualComponent> VisualComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Formation|Components")
+	TObjectPtr<UFormationMovementComponent> MovementComponent;
 
 	// ========================================================================
 	// CONFIGURATION & IDENTITY
@@ -135,9 +157,8 @@ private:
 	EFormationState FormationState;
 
 	bool bIsSelected;
-
 	FVector FacingDirection;
 
-	/** Flat compact array of alive soldier entities (No holes, swap-remove upon death) */
+	/** Flat compact array of alive soldier entities */
 	TArray<FSoldierEntity> SoldierEntities;
 };

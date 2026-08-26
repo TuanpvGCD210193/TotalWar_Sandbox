@@ -10,12 +10,24 @@
 
 class UFormationSubsystem;
 
+USTRUCT(BlueprintType)
+struct FTWObstacle
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Obstacle")
+	FVector Position = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Obstacle")
+	float Radius = 100.0f;
+};
+
 /**
  * USpatialGridSubsystem — Hệ Thống Phân Vùng Không Gian (Spatial Hash Grid).
  * Trách nhiệm duy nhất (SRP):
  *   - Chia không gian battlefield thành các ô cell kích thước 200cm (2m).
  *   - Cung cấp các hàm truy vấn lân cận O(1) phục vụ: Chống đè lính (Separation steering),
- *     tìm mục tiêu cận chiến (Melee targeting), và phát hiện tiền tuyến (Frontline detection).
+ *     tìm mục tiêu cận chiến (Melee targeting), né vật cản (Obstacle avoidance), và tiền tuyến (Frontline detection).
  * Follows Single Responsibility Principle (SRP) & Dependency Inversion Principle (DIP).
  */
 UCLASS()
@@ -30,6 +42,15 @@ public:
 	// ========================================================================
 	// PUBLIC API
 	// ========================================================================
+
+	/** Registers a static obstacle (rock, tree, building) for avoidance */
+	void RegisterObstacle(const FVector& Position, float Radius);
+
+	/** Clears registered obstacles */
+	void ClearObstacles();
+
+	/** Calculates repulsive soft avoidance force from nearby obstacles (O(1)) */
+	FVector CalculateObstacleRepulsion(const FVector& SoldierPos, float SoldierRadius = 45.0f) const;
 
 	/** Rebuilds the spatial grid by indexing all alive soldiers across all active formations */
 	void RebuildGrid();
@@ -64,6 +85,10 @@ private:
 	float CellSize;
 
 	int32 TotalSoldierCount;
+
+	/** Static obstacles on battlefield */
+	UPROPERTY(Transient)
+	TArray<FTWObstacle> RegisteredObstacles;
 
 	/** Hash map mapping 64-bit Cell Key (CellX << 32 | CellY) to array of soldier handles */
 	TMap<int64, TArray<FSoldierHandle>> GridMap;

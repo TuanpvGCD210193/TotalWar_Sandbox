@@ -42,4 +42,5 @@ protected:
 
 private:
 	void DrawSelectionBox(ATWPlayerController* PC);
+	void DrawFormationGroundBox(ATWPlayerController* PC, AFormationActor* Formation, const FLinearColor& Color, float Thickness);
 };

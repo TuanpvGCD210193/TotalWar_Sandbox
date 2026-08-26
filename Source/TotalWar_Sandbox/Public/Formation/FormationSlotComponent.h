@@ -34,10 +34,37 @@ public:
 	void RebuildSlots(int32 AliveCount, const FVector& FormationCenter, const FVector& FacingDirection);
 
 	/**
+	 * Total War Rank & File Projection Sorting Algorithm:
+	 * Projects soldiers onto Forward and Right axes, then assigns soldiers row-by-row and col-by-col
+	 * to destination slots. Guarantees parallel non-crossing paths (O(N log N)).
+	 */
+	void AssignSlotsByRankAndFileProjection(
+		TArray<FSoldierEntity>& Soldiers,
+		const FVector& CurrentCenter,
+		const FVector& CurrentFacing
+	);
+
+	/**
 	 * Assigns alive soldiers to the nearest available formation slots (Greedy matching).
 	 * Prevents soldiers from criss-crossing when formation shape changes.
 	 */
 	void ReassignSoldiersToClosestSlots(TArray<FSoldierEntity>& Soldiers);
+
+	/**
+	 * Calculates the physical ground bounding box of the formation:
+	 * - Idle: Rigid geometric bounds with proper depth center offset.
+	 * - March: Realtime Oriented Bounding Box enclosing living soldiers.
+	 */
+	void CalculateFormationGroundBounds(
+		const TArray<FSoldierEntity>& Soldiers,
+		bool bIsMoving,
+		EFormationState State,
+		const FVector& ActorLoc,
+		const FVector& Facing,
+		FVector& OutCenter,
+		FVector& OutExtents,
+		FRotator& OutRotation
+	) const;
 
 	/** Direct sequential slot assignment (0 -> 0, 1 -> 1) */
 	void AssignSoldiersSequentially(TArray<FSoldierEntity>& Soldiers);
