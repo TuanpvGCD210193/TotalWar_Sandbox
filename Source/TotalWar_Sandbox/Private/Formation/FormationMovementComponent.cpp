@@ -80,10 +80,16 @@ void UFormationMovementComponent::ExecuteMoveCommand(
 		SlotComponent->SetFormationWidth(Command.TargetWidth);
 	}
 
-	// 2. Build destination slots ONCE towards destination
+	// 2. Lock facing direction onto OwnerFormation
+	if (!FinalDesiredFacing.IsNearlyZero())
+	{
+		OwnerFormation->SetFacingDirection(FinalDesiredFacing);
+	}
+
+	// 3. Build destination slots ONCE towards destination
 	SlotComponent->RebuildSlots(Soldiers.Num(), TargetDestination, FinalDesiredFacing);
 
-	// 3. Total War Rank & File Projection: Map soldiers cleanly to their closest destination slot
+	// 4. Total War Rank & File Projection: Map soldiers cleanly to their closest destination slot
 	SlotComponent->AssignSlotsByRankAndFileProjection(
 		Soldiers,
 		OwnerFormation->GetActorLocation(),
@@ -405,6 +411,19 @@ void UFormationMovementComponent::StopMovement(
 
 	if (OwnerFormation && OwnerFormation->GetFormationState() != EFormationState::Engage)
 	{
+		// Lock the final desired facing onto the FormationActor
+		if (!FinalDesiredFacing.IsNearlyZero())
+		{
+			OwnerFormation->SetFacingDirection(FinalDesiredFacing);
+		}
+
 		OwnerFormation->SetFormationState(EFormationState::Idle);
+
+		// Synchronize Idle slots and soldier alignments to exact target positions
+		if (SlotComponent)
+		{
+			SlotComponent->RebuildSlots(Soldiers.Num(), OwnerFormation->GetActorLocation(), OwnerFormation->GetFacingDirection());
+			SlotComponent->AssignSlotsByRankAndFileProjection(Soldiers, OwnerFormation->GetActorLocation(), OwnerFormation->GetFacingDirection());
+		}
 	}
 }

@@ -35,6 +35,7 @@ void UFormationSlotComponent::RebuildSlots(int32 AliveCount, const FVector& Form
 	const int32 Rows = FMath::CeilToInt(static_cast<float>(AliveCount) / static_cast<float>(Columns));
 
 	const FRotator FacingRot = FacingDirection.GetSafeNormal2D().Rotation();
+	const float HalfDepthOffset = ((Rows - 1) * SoldierSpacing) * 0.5f;
 	int32 SoldiersPlaced = 0;
 
 	for (int32 Row = 0; Row < Rows; ++Row)
@@ -45,8 +46,8 @@ void UFormationSlotComponent::RebuildSlots(int32 AliveCount, const FVector& Form
 			break;
 		}
 
-		// Row 0 is front row at offset 0, subsequent rows step back along -X
-		const float LocalX = -Row * SoldierSpacing;
+		// Centroid is at 0: Row 0 is at +HalfDepthOffset, Row (Rows-1) is at -HalfDepthOffset
+		const float LocalX = HalfDepthOffset - (Row * SoldierSpacing);
 
 		for (int32 Col = 0; Col < SoldiersInThisRow; ++Col)
 		{

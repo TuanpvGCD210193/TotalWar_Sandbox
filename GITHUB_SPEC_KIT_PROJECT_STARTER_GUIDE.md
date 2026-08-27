@@ -1,106 +1,80 @@
-# 🚀 CẨM NANG KHỞI ĐẦU DỰ ÁN MỚI VỚI GITHUB SPEC KIT (SPECIFICATION-DRIVEN DEVELOPMENT)
+# 🚀 GITHUB SPEC KIT (SDD) — HƯỚNG DẪN BẮT ĐẦU DỰ ÁN MỚI TỪ ĐẦU (PROJECT STARTER GUIDE)
 
-> **Mục tiêu**: Hướng dẫn trọn vẹn từ A-Z cách thiết lập và vận hành **GitHub Spec Kit** ngay từ ngày đầu tiên cho mọi dự án mới (Unreal Engine, Unity, Web, App, Backend, Embedded), giúp dự án đạt chuẩn **0% Bug, 0% Nợ Kỹ Thuật, và Có Tài Liệu Sống (Living Docs) Vĩnh Viễn**.
+> **Cẩm Nang Chuẩn Mực Dành Cho Mọi Dự Án Unreal Engine & Phần Mềm Hiện Đại**  
+> Kết hợp hoàn hảo giữa phương pháp luận **Phát triển Hướng Đặc tả (Spec-Driven Development - SDD)** và **Bộ 5 Nguyên Tắc Vàng của Antigravity (AGY)**.
 
 ---
 
-# 🌟 1. Tổng Quan Triết Lý: Tại Sao Phải Áp Dụng Spec Kit Từ Ngày Đầu?
+## 🏛️ 1. BỘ 5 NGUYÊN TẮC VÀNG BẮT BUỘC
 
-Trong quy trình phát triển truyền thống với AI (*"Vibe Coding"*):
-- Lập trình viên chat các câu lệnh rời rạc, AI vội vã sinh code $\rightarrow$ Code ban đầu chạy được nhưng càng về sau càng rối, các tính năng mới bắt đầu đè logic vào tính năng cũ và sinh ra lỗi hàng loạt (Cascading Bugs).
+1. **🌟 Phong Cách Đồng Hành (Senior Technical Lead)**: Xưng hô "Em" - "Anh", giải thích bản chất gốc rễ toán học / kiến trúc, hướng dẫn chi tiết từng bước trên Unreal Editor.
+2. **🛡️ Kỷ Luật Micro-Steps ("Chưa Code Nhé")**: Phân tích trước $\rightarrow$ Chia nhỏ bước $\rightarrow$ Nhắc rõ *"chưa code nhé"* $\rightarrow$ Chờ anh duyệt mới code $\rightarrow$ Cập nhật ngay `[x]` vào `tasks.md`.
+3. **📐 Kiến Trúc Hướng Dữ Liệu & SOLID (Zero Hardcoding & DRY)**: Phân rã SRP, $100\%$ cấu hình qua `UPROPERTY`/`UDataAsset`, không hardcode asset path hay magic numbers.
+4. **🚀 Quy Trình Spec Kit Phân Cấp (Hierarchical SDD)**: Phân chia rõ `specs/feat/`, `specs/fix/`, `specs/refactor/`, nguyên tắc "One Spec, One Purpose", ma trận 5 Edge Cases.
+5. **🧠 Tích Lũy Tri Thức (/learn)**: Dùng lệnh `/learn` để lưu vết các bài học kiến trúc vĩnh viễn vào hệ thống.
 
-**Quy trình Specification-Driven Development (SDD) của GitHub Spec Kit** giải quyết triệt để vấn đề này bằng triết lý **"No Spec, No Code"**:
+---
+
+## 📂 2. CẤU TRÚC THƯ MỤC CHUẨN MỰC CỦA SPEC KIT
 
 ```
-[ 1. CONSTITUTION (Hiến pháp) ] ──► [ 2. SPEC (Đặc tả & Toán) ] ──► [ 3. PLAN (Kiến trúc SOLID) ] ──► [ 4. TASKS (Micro-Steps) ] ──► [ 5. IMPLEMENT (Thi công an toàn) ]
+MyProject/
+├── .agents/
+│   └── rules/
+│       └── user_workflow.md            # Bộ 5 Nguyên tắc vàng của Antigravity
+│
+├── .specify/
+│   ├── memory/
+│   │   └── constitution.md             # Hiến pháp kỹ thuật của dự án
+│   └── scripts/
+│       └── powershell/
+│           ├── create-new-feature.ps1  # Script tự động tạo Spec mới
+│           ├── check-prerequisites.ps1
+│           └── common.ps1
+│
+└── specs/
+    ├── feat/                           # TÍNH NĂNG MỚI (New Features)
+    │   └── 001-archer-unit/
+    │       ├── spec.md                 # Đặc tả mục tiêu & 5 Edge Cases
+    │       ├── plan.md                 # Bản vẽ kiến trúc module
+    │       └── tasks.md                # Danh sách Micro-Tasks thi công
+    │
+    ├── fix/                            # SỬA LỖI & TINH CHỈNH (Bug Fixes)
+    │   └── 001-rotation-anchor-fix/
+    │
+    └── refactor/                       # TÁI CẤU TRÚC KIẾN TRÚC (Architecture Refactoring)
+        └── 001-spatial-grid-opt/
 ```
 
 ---
 
-# 📋 2. QUY TRÌNH 4 BƯỚC KHỞI ĐẦU DỰ ÁN MỚI (STEP-BY-STEP)
+## 🛠️ 3. QUY TRÌNH 4 BƯỚC KHỞI TẠO DỰ ÁN MỚI
 
----
+### Bước 1: Khởi Tạo Môi Trường Spec Kit
+```powershell
+# Cài đặt specify CLI (nếu máy mới chưa có)
+pip install git+https://github.com/github/spec-kit.git
 
-### 📌 BƯỚC 1: Khởi Tạo Bộ Khung Spec Kit Ngay Từ Đầu (1 Lần Duy Nhất)
-Khi vừa tạo một project mới:
-1. Mở Terminal / Git Bash tại thư mục gốc của project đó.
-2. Chạy đúng 1 dòng lệnh duy nhất:
-   ```bash
-   specify init . --ignore-agent-tools
-   ```
-3. Lệnh này tự động sinh ra thư mục `.specify/` chứa toàn bộ:
-   - `templates/`: Mẫu đặc tả (`spec-template.md`), kế hoạch (`plan-template.md`), tasks (`tasks-template.md`).
-   - `scripts/powershell/`: Bộ công cụ tự động hóa (`create-new-feature.ps1`, `setup-plan.ps1`, `setup-tasks.ps1`).
-   - `memory/constitution.md`: Hiến pháp của dự án.
-
----
-
-### 📌 BƯỚC 2: Thiết Lập "Hiến Pháp Dự Án" (`constitution.md`)
-Mở file `.specify/memory/constitution.md` để quy định ngay các **Luật Bất Biến** của dự án:
-
-1. **Điều 1: Clean Architecture & SOLID (SRP / DIP)**:
-   - Mỗi Component/Subsystem chỉ làm đúng 1 nhiệm vụ duy nhất (Ví dụ: Movement lo di chuyển, Combat lo đánh nhau, HUD lo vẽ).
-2. **Điều 2: 0% Hardcoding**:
-   - 100% các biến số (tốc độ, sát thương, tầm xa, asset mesh, material) đều phải expose qua Config / DataAsset / UPROPERTY, tuyệt đối không hardcode trong logic C++.
-3. **Điều 3: Kỷ Luật Thi Công Micro-Steps ("Chưa code nhé")**:
-   - Ép AI phải phân tích giải pháp $\rightarrow$ nói rõ *"chưa code nhé"* $\rightarrow$ chờ anh duyệt từng bước mới được sửa code $\rightarrow$ hướng dẫn test Live Coding.
-
----
-
-### 📌 BƯỚC 3: Vòng Lặp Phát Triển Từng Tính Năng (Feature Workflow)
-Mỗi khi bắt đầu làm một tính năng mới (ví dụ: `tactical-ai`, `inventory-system`, `magic-spell`...):
-
-#### 1️⃣ Tạo Đặc Tả Tính Năng (`spec.md`):
-- Chạy lệnh:
-  ```bash
-  powershell -File .specify/scripts/powershell/create-new-feature.ps1 "Tên mô tả tính năng" -ShortName "ten-ngan"
-  ```
-  *(Hoặc bảo AI: "Em tạo spec cho tính năng X đi em")*.
-- Trong file `spec.md`:
-  - Chốt rõ **Mục tiêu tính năng** & Trải nghiệm kỳ vọng.
-  - Chốt rõ **Công thức toán học & Quy trình trạng thái**.
-  - **Bắt buộc phân tích tối thiểu 5-6 kịch bản lỗi (Edge Cases)** trước khi đụng vào code.
-
-#### 2️⃣ Lập Bản Vẽ Kỹ Thuật (`plan.md`):
-- Chạy lệnh `setup-plan.ps1` (hoặc để AI tạo):
-  - Khoanh vùng chính xác file C++/Blueprint nào chịu trách nhiệm, đảm bảo không đè logic sang file khác.
-  - Thiết kế API Contract (Hàm, Biến, Event).
-
-#### 3️⃣ Phân Rã Danh Sách Việc Cần Làm (`tasks.md`):
-- Chạy lệnh `setup-tasks.ps1`:
-  - Chia nhỏ tính năng thành các Micro-tasks độc lập `Task 1.1`, `Task 1.2`, `Task 1.3`...
-
----
-
-### 📌 BƯỚC 4: Thi Công An Toàn Cùng AI Agent (Rule Execution)
-1. Yêu cầu AI đọc trực tiếp từ file `specs/XXX/tasks.md`.
-2. AI trình bày giải pháp cho từng task $\rightarrow$ *"Chưa code nhé"* $\rightarrow$ Chờ anh duyệt $\rightarrow$ Cập nhật code $\rightarrow$ Hướng dẫn test Live Coding $\rightarrow$ Đánh dấu tick `[x]` vào `tasks.md`.
-3. Khi hoàn thành tính năng: Sử dụng lệnh `/learn` để lưu lại các kinh nghiệm quý báu vào bộ nhớ dài hạn của dự án!
-
----
-
-# 💡 3. BÍ QUYẾT "VÀNG" ĐỂ ĐẠT HIỆU QUẢ TUYỆT ĐỐI 100%
-
-| Bí Quyết | Ý Nghĩa Thực Chiến |
-| :--- | :--- |
-| **1. "No Spec, No Code"** | Tuyệt đối không bao giờ cho phép AI viết code trước khi có file `spec.md` đã được duyệt. |
-| **2. Giải quyết Edge Cases trên giấy trước** | 90% lỗi trong lập trình xuất phát từ việc không lường trước các trường hợp góc (va chạm, chia cho 0, null pointer, mạng lag). Giải quyết nó trong `spec.md` giúp code viết ra chạy mượt mà ngay lần đầu tiên! |
-| **3. Thư mục `specs/` là tài sản lớn nhất** | Nó là **Living Documentation** lưu lại toàn bộ lịch sử kiến trúc, giúp anh và cộng sự dễ dàng bảo trì, nâng cấp dự án nhiều năm sau mà không bao giờ sợ quên code! |
-
----
-
-# ⚡ 4. BẢNG TRA CỨU LỆNH NHANH (CHEAT SHEET)
-
-```bash
-# 1. Khởi tạo dự án mới:
+# Khởi tạo Spec Kit trong thư mục dự án mới
+cd "D:\UE Project\NewProject"
 specify init . --ignore-agent-tools
-
-# 2. Tạo Spec tính năng mới:
-powershell -File .specify/scripts/powershell/create-new-feature.ps1 "Feature Description" -ShortName "feature-name"
-
-# 3. Tạo Plan kỹ thuật:
-powershell -File .specify/scripts/powershell/setup-plan.ps1
-
-# 4. Tạo Danh sách Tasks:
-powershell -File .specify/scripts/powershell/setup-tasks.ps1
 ```
+
+### Bước 2: Tạo Thư Mục Phân Cấp Chuẩn
+```powershell
+New-Item -ItemType Directory -Force -Path 'specs/feat', 'specs/fix', 'specs/refactor', '.agents/rules'
+```
+
+### Bước 3: Tạo Spec Mới Theo Chuẩn Phân Cấp
+```powershell
+# Khi làm tính năng mới:
+powershell -File .specify/scripts/powershell/create-new-feature.ps1 "Archer Unit" -ShortName "feat/001-archer-unit"
+
+# Khi sửa lỗi phát sinh:
+powershell -File .specify/scripts/powershell/create-new-feature.ps1 "Rotation Anchor Fix" -ShortName "fix/001-rotation-anchor"
+```
+
+### Bước 4: Vận Hành Theo Chu Trình SDD 3 Giai Đoạn
+1. **Giai đoạn Thiết kế**: Viết `spec.md` (chốt công thức & 5 Edge Cases) $\rightarrow$ Viết `plan.md` $\rightarrow$ Viết `tasks.md`.
+2. **Giai đoạn Thi công (Micro-Steps)**: Báo cáo giải pháp $\rightarrow$ Nhắc *"chưa code nhé"* $\rightarrow$ Chờ duyệt $\rightarrow$ Viết code $\rightarrow$ Hướng dẫn test engine $\rightarrow$ Tick `[x]` vào `tasks.md`.
+3. **Giai đoạn Nghiệm thu & Tích lũy (/learn)**: Test hoàn tất $\rightarrow$ Dùng lệnh `/learn` để ghi nhớ tri thức vĩnh viễn.

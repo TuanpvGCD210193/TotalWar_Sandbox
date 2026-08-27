@@ -111,6 +111,7 @@ void UFormationSubsystem::CalculateSlotLayout(
 	const int32 Rows = FMath::CeilToInt(static_cast<float>(EntityCount) / static_cast<float>(Columns));
 
 	const FRotator FacingRot = Facing.GetSafeNormal2D().Rotation();
+	const float HalfDepthOffset = ((Rows - 1) * Spacing) * 0.5f;
 	int32 SoldiersPlaced = 0;
 
 	for (int32 Row = 0; Row < Rows; ++Row)
@@ -121,8 +122,8 @@ void UFormationSubsystem::CalculateSlotLayout(
 			break;
 		}
 
-		// Row offset along forward/backward axis (Row 0 is front row at 0, subsequent rows step back along -X)
-		const float LocalX = -Row * Spacing;
+		// Centroid is at 0: Row 0 is at +HalfDepthOffset, Row (Rows-1) is at -HalfDepthOffset
+		const float LocalX = HalfDepthOffset - (Row * Spacing);
 
 		for (int32 Col = 0; Col < SoldiersInThisRow; ++Col)
 		{
